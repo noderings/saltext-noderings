@@ -1,0 +1,168 @@
+[build-system]
+requires = [
+    "wheel",
+    "setuptools>=50.3.2",
+    "setuptools_scm[toml]>=3.4",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/saltext/noderings/version.py"
+write_to_template = "__version__ = \"{version}\"\n"
+
+[project]
+name = "saltext.noderings"
+description = "Salt Extension for ordering servers and managing DNS, firewalls and SSH keys on the NodeRings cloud marketplace"
+authors = [
+    {name = "NodeRings", email = "partners@noderings.com"},
+]
+keywords = [
+    "salt-extension",
+    "noderings",
+    "salt-cloud",
+    "vps",
+    "dns",
+]
+license = {text = "Apache Software License"}
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Cython",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: Apache Software License",
+]
+requires-python = ">= 3.11"
+dynamic = ["version"]
+dependencies = [
+    "salt>=3006",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[project.urls]
+Homepage = "https://github.com/noderings/saltext-noderings"
+Documentation = "https://noderings.github.io/saltext-noderings/"
+Source = "https://github.com/noderings/saltext-noderings"
+Tracker = "https://github.com/noderings/saltext-noderings/issues"
+
+[project.optional-dependencies]
+changelog = ["towncrier==25.8.0"]
+dev = [
+    "nox[uv]>=2024.3,!=2025.05.01",
+    "pre-commit>=2.21.0",
+]
+docs = [
+  "sphinx",
+  "sphinx-prompt",
+  "sphinx-copybutton",
+  "towncrier==25.8.0",
+  "sphinxcontrib-towncrier",
+  "myst_parser",
+  "furo",
+  "sphinx-inline-tabs",
+]
+lint = [
+    "pylint==4.0.4",
+]
+tests = [
+    "pytest>=7.2.0",
+    "pytest-salt-factories>=1.0.0",
+    "pytest-instafail",
+]
+
+[project.entry-points."salt.loader"]
+"saltext.noderings" = "saltext.noderings"
+
+[tool.uv]
+# Salt's legacy setup.py requires old setuptools.
+build-constraint-dependencies = ["setuptools<69"]
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+platforms = ["any"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests"]
+
+[tool.distutils.bdist_wheel]
+universal = 1
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+force_single_line = true
+skip = ["src/saltext/noderings/__init__.py"]
+profile = "black"
+line_length = 100
+
+[tool.towncrier]
+package = "saltext.noderings"
+filename = "CHANGELOG.md"
+template = "changelog/.template.jinja"
+directory = "changelog/"
+start_string = "# Changelog\n"
+underlines = ["", "", ""]
+title_format = "## {version} ({project_date})"
+issue_format = "[#{issue}](https://github.com/noderings/saltext-noderings/issues/{issue})"
+
+[[tool.towncrier.type]]
+directory = "breaking"
+name = "Breaking changes"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removed"
+name = "Removed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "deprecated"
+name = "Deprecated"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "changed"
+name = "Changed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "fixed"
+name = "Fixed"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "added"
+name = "Added"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "security"
+name = "Security"
+showcontent = true
+
+# Not used for linting (pylint is), but helpful for editors running ruff.
+[tool.ruff]
+line-length = 100
+builtins = [
+    "__opts__",
+    "__salt__",
+    "__pillar__",
+    "__grains__",
+    "__context__",
+    "__utils__",
+    "__states__",
+    "__active_provider_name__",
+]
