@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      billed:
+        description: Also run tests that order billed servers
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "black==26.5.1" "isort==8.0.1"
+      - run: black --check src tests
+      - run: isort --check-only src tests
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[lint,tests]"
+      - name: Lint the extension
+        run: pylint --rcfile=.pylintrc src/saltext/noderings
+      - name: Lint the tests
+        run: pylint --rcfile=.pylintrc --disable=redefined-outer-name,unused-argument,import-outside-toplevel tests
+
+  unit:
+    name: Unit (Salt ${{ matrix.salt }}, Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {salt: "3006.*", python: "3.11"}
+          - {salt: "3008.*", python: "3.11"}
+          - {salt: "3008.*", python: "3.12"}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install "salt==${{ matrix.salt }}" -e ".[tests]"
+      - run: pytest -ra tests/unit
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[docs]"
+      - run: sphinx-build -W -b html docs docs/_build/html
+
+  live:
+    name: Live tests (NodeRings API)
+    needs: [unit]
+    # Only where the secret exists; forks and outside pull requests skip.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      NODERINGS_TOKEN: ${{ secrets.NODERINGS_TOKEN }}
+      NODERINGS_TEST_BILLED: ${{ inputs.billed && '1' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "salt==3008.*" -e ".[tests]"
+      - name: Functional and integration tests
+        if: env.NODERINGS_TOKEN != ''
+        run: pytest -ra tests/functional tests/integration
