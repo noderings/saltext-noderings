@@ -34,13 +34,18 @@ example.com:
   noderings.dns_zone_present:
     - dnssec: True
 
+# Salt renders this file before any state runs, so on the first run web-1
+# does not exist yet: the record is skipped, and the next run adds it.
+{% set web = salt['noderings.get_vm']('web-1') %}
+{% if web %}
 www:
   noderings.dns_record_present:
     - zone: example.com
     - rtype: A
     - ttl: 300
     - values:
-      - {{ salt['noderings.get_vm']('web-1')['ipv4'] }}
+      - {{ web['ipv4'] }}
+{% endif %}
 ```
 
 ## What changes in place

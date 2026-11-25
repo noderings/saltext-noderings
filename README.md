@@ -89,12 +89,17 @@ web-1:
 example.com:
   noderings.dns_zone_present
 
+# Salt renders this file before any state runs, so on the first run web-1
+# does not exist yet: the record is skipped, and the next run adds it.
+{% set web = salt['noderings.get_vm']('web-1') %}
+{% if web %}
 www:
   noderings.dns_record_present:
     - zone: example.com
     - rtype: A
     - values:
-      - {{ salt['noderings.get_vm']('web-1')['ipv4'] }}
+      - {{ web['ipv4'] }}
+{% endif %}
 ```
 
 `vm_present` updates tags, the firewall and the power state in place. It reinstalls a server for a new `distro` only with `allow_reinstall: True`, because that erases the disk.
