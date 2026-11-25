@@ -3,7 +3,7 @@
 The `noderings` state module declares NodeRings resources. Every state supports
 `test=True`.
 
-```yaml
+```yaml+jinja
 laptop-key:
   noderings.ssh_key_present:
     - name: laptop
