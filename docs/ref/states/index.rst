@@ -1,5 +1,12 @@
-State module
-============
+.. all-saltext.noderings.states:
 
-.. automodule:: saltext.noderings.states.noderings_mod
-   :members:
+_____________
+State Modules
+_____________
+
+.. currentmodule:: saltext.noderings.states
+
+.. autosummary::
+    :toctree:
+
+    noderings_mod

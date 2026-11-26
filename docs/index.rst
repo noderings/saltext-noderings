@@ -21,6 +21,7 @@ firewall rulesets, SSH keys and virtual machines in Salt states.
    ref/modules/index
    ref/states/index
    ref/clouds/index
+   ref/utils/index
 
 .. toctree::
    :maxdepth: 1

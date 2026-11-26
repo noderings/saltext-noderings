@@ -24,7 +24,7 @@ class FakeMarket:
     def __init__(self, providers):
         self.providers = providers
 
-    def list_providers(self, code, country, city, billing, ipv6):
+    def list_providers(self, code, country, city, billing, ipv6):  # pylint: disable=unused-argument
         return self.providers
 
 

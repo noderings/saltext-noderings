@@ -1,4 +1,4 @@
-# pylint: disable=missing-module-docstring
+# pylint: disable=missing-module-docstring,import-error
 import setuptools
 
 if __name__ == "__main__":

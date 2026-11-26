@@ -1,5 +1,12 @@
-Execution module
-================
+.. all-saltext.noderings.modules:
 
-.. automodule:: saltext.noderings.modules.noderings_mod
-   :members:
+_________________
+Execution Modules
+_________________
+
+.. currentmodule:: saltext.noderings.modules
+
+.. autosummary::
+    :toctree:
+
+    noderings_mod

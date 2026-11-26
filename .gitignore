@@ -130,10 +130,10 @@ dmypy.json
 .pyre/
 
 # Ignore the setuptools_scm auto-generated version module
+src/saltext/noderings/version.py
 
 # Ignore CI generated artifacts
 artifacts/
 
 # local test runs
 .salt-cloud-test/
-src/saltext/noderings/version.py

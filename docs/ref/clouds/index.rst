@@ -1,5 +1,12 @@
-Salt Cloud driver
-=================
+.. all-saltext.noderings.clouds:
 
-.. automodule:: saltext.noderings.clouds.noderings_mod
-   :members:
+_____________
+Cloud Modules
+_____________
+
+.. currentmodule:: saltext.noderings.clouds
+
+.. autosummary::
+    :toctree:
+
+    noderings_mod

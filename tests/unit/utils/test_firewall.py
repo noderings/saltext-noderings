@@ -27,7 +27,7 @@ class FakeRules:
         self.n = len(bodies)
         self.ops = []
 
-    def list_firewall_rules(self, rs):
+    def list_firewall_rules(self, rs):  # pylint: disable=unused-argument
         return [dict(r, position=i) for i, r in enumerate(self.rules)]
 
     def update_firewall_rule(self, rid, body):
@@ -38,14 +38,16 @@ class FakeRules:
         self.ops.append(("delete", rid))
         self.rules = [r for r in self.rules if r["id"] != rid]
 
-    def create_firewall_rule(self, rs, body):
+    def create_firewall_rule(self, rs, body):  # pylint: disable=unused-argument
         rid = f"r{self.n}"
         self.n += 1
         self.ops.append(("create", rid))
         self.rules.insert(0, {"id": rid, "rule": body})
         return {"id": rid}
 
-    def move_firewall_rule(self, rid, target, position="FIREWALL_RULE_POSITION_BEFORE"):
+    def move_firewall_rule(  # pylint: disable=unused-argument
+        self, rid, target, position="FIREWALL_RULE_POSITION_BEFORE"
+    ):
         self.ops.append(("move", rid))
         r = next(x for x in self.rules if x["id"] == rid)
         self.rules.remove(r)
