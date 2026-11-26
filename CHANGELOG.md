@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/noderings/saltext-noderings/compare/v0.1.0...v0.2.0) (2026-11-26)
+
+
+### Features
+
+* choose the hosting provider when ordering a VM ([#6](https://github.com/noderings/saltext-noderings/issues/6)) ([ce7bf3e](https://github.com/noderings/saltext-noderings/commit/ce7bf3e66c4a480160e96687f95888ff6536e001))
+
+
+### Documentation
+
+* skip this repository's compare links in linkcheck ([6f9aa22](https://github.com/noderings/saltext-noderings/commit/6f9aa22a9235bace9ef9043b247c83a03251749a))
+
 ## 0.1.0 (2026-11-26)
 
 
