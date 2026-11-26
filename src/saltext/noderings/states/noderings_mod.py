@@ -399,6 +399,7 @@ def vm_present(
     plan_id=None,
     region_id=None,
     provider_id=None,
+    hosting_provider=None,
     password=None,
     wait_timeout=900,
     profile="noderings",
@@ -424,6 +425,16 @@ def vm_present(
     firewall_ruleset
         Name or ID of a ruleset to attach. ``""`` detaches the current one;
         ``None`` (the default) leaves it alone.
+
+    hosting_provider
+        Order only from this hosting provider: its provider ID, its storefront
+        slug (such as ``acme-hosting``) or its name (``Acme Hosting``, any
+        case). A name that more than one provider uses fails the state; give
+        the ID or slug then. Without it the cheapest offer from any provider is
+        ordered, so the provider can change between servers. ``provider_id``
+        takes precedence. Only used to order; an existing server is never
+        moved. (It is not called ``provider`` because Salt reserves that state
+        argument.)
     """
     ret = _ret(name)
     if power_state not in ("running", "stopped"):
@@ -458,6 +469,7 @@ def vm_present(
                 plan_id=plan_id,
                 region_id=region_id,
                 provider_id=provider_id,
+                hosting_provider=hosting_provider,
                 wait_timeout=wait_timeout,
                 profile=profile,
             )

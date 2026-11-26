@@ -26,6 +26,7 @@ noderings-ashburn-small:
   location: United States/Ashburn  # Country/City
   image: ubuntu_24_04              # distro
   billing_type: usage              # hourly, from prepaid credit
+  hosting_provider: acme-hosting   # optional: ID, storefront slug or name
   ssh_keys: [laptop]               # SSH keys stored in NodeRings (a key or a password is required)
   private_key: /root/.ssh/id_ed25519
   firewall_ruleset: web            # optional
@@ -39,7 +40,8 @@ noderings-ashburn-small:
 | `image` | Distro. `salt-cloud --list-images my-noderings` lists them. |
 | `billing_type` | `usage` (hourly, default), `subscription` or `free`. |
 | `plan_id`, `region_id` | Order one exact offer instead of the cheapest for `size` and `location`. |
-| `provider_id` | Only consider offers from this hosting provider. |
+| `hosting_provider` | Only order from this hosting provider: its provider ID, its storefront slug (such as `acme-hosting`) or its name (`Acme Hosting`, any case). A name that more than one provider uses fails the order; give the ID or slug then. Without it the cheapest offer wins, so the provider can change between servers. |
+| `provider_id` | Only consider offers from this hosting provider ID. Takes precedence over `hosting_provider`. |
 | `sort` | `price` (default) or `rating`. |
 | `ssh_keys` | Names of SSH keys stored in NodeRings. The API needs a key or a `password`. |
 | `private_key` | Private key matching one of `ssh_keys`, used for the bootstrap. |
@@ -47,6 +49,11 @@ noderings-ashburn-small:
 | `tags` | Tags for the server. |
 | `deploy` | `False` to skip the minion bootstrap. |
 | `wait_timeout` | Seconds to wait for the server to be running (default 900). |
+
+The hosting provider key is `hosting_provider`, not `provider`: in a Salt Cloud
+profile `provider` names the provider block (`my-noderings` above). The execution
+module and the `vm_present` state use the same name, also because Salt reserves
+`provider` as a state argument.
 
 ## Use
 

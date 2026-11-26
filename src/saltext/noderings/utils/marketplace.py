@@ -2,6 +2,11 @@
 Marketplace offer lookup: turn a plan code and a city into a plan and region ID.
 """
 
+import re
+
+from saltext.noderings.utils.client import NodeRingsError
+from saltext.noderings.utils.client import is_not_found
+from saltext.noderings.utils.client import is_uuid
 from saltext.noderings.utils.client import trim_enum
 
 BILLING_TYPES = {
@@ -14,6 +19,32 @@ ASSET_TYPES = {"virtual_machine": "ASSET_TYPE_VM", "game_server": "ASSET_TYPE_GA
 
 class NoOfferError(Exception):
     pass
+
+
+_SLUG_RE = re.compile(r"^[a-z0-9-]{1,80}$")
+
+
+def resolve_provider(client, provider):
+    """Turn a provider ID, storefront slug or provider name into ``(provider_id, name)``.
+
+    An ID or a slug that names a public storefront gives the provider ID. Anything
+    else is a provider name, matched without regard to case against the offers.
+    """
+    value = (provider or "").strip()
+    if not value:
+        return None, None
+    if is_uuid(value):
+        return value, None
+    if _SLUG_RE.match(value):
+        try:
+            sf = client.get_public_storefront(value)
+        except NodeRingsError as exc:
+            if not is_not_found(exc):
+                raise
+            sf = None
+        if sf and sf.get("providerId"):
+            return sf["providerId"], None
+    return None, value
 
 
 def _amount(p):
@@ -72,9 +103,16 @@ def find_offers(
     require_capabilities=None,
     require_ipv6=False,
     sort="price",
+    provider=None,
 ):
     """Return (offers, located) where offers are sorted best first and located
-    counts the offers that matched the location before capability/IPv6 filters."""
+    counts the offers that matched the location before capability/IPv6 filters.
+
+    ``provider`` is a provider ID, storefront slug or provider name; see
+    :func:`resolve_provider`."""
+    provider_name = None
+    if provider and not (provider_id or storefront_slug):
+        provider_id, provider_name = resolve_provider(client, provider)
     billing = BILLING_TYPES.get(billing_type or "", "")
     asset = ASSET_TYPES.get(asset_type or "virtual_machine", "ASSET_TYPE_VM")
     if storefront_slug:
@@ -135,6 +173,15 @@ def find_offers(
                     "prices": p.get("planPrices") or [],
                 }
             )
+    if provider_name:
+        want = provider_name.lower()
+        found = [o for o in found if (o["provider_name"] or "").strip().lower() == want]
+        ids = {o["provider_id"] for o in found}
+        if len(ids) > 1:
+            raise NoOfferError(
+                f"more than one provider is named {provider_name}; give its provider ID or "
+                "storefront slug instead"
+            )
     located = len(found)
     need = set(require_capabilities or [])
     out = [
@@ -169,8 +216,10 @@ def offer_view(o):
     }
 
 
-def no_offer_message(plan_code, country, city, billing_type, located):
+def no_offer_message(plan_code, country, city, billing_type, located, provider=None):
     msg = f"No offer for plan code {plan_code} in {city}, {country}"
+    if provider:
+        msg += f" from provider {provider}"
     if billing_type:
         msg += f" with billing type {billing_type}"
     msg += "."
