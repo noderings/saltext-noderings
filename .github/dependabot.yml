@@ -1,9 +1,17 @@
+# Commit messages use Conventional Commits so release-please can sort them.
+# Both groups only touch CI and development tools, so they stay out of the
+# changelog ("ci" and "build" are hidden sections).
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    commit-message:
+      prefix: "ci"
     groups:
       "github-actions":
         patterns:
@@ -12,6 +20,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    commit-message:
+      prefix: "build"
     groups:
       "pip":
         patterns:

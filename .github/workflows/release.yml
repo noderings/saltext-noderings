@@ -1,54 +1,128 @@
-# Publishes a release to PyPI with trusted publishing (no stored token).
-# One-time setup on pypi.org: add a pending publisher for project
-# "saltext.noderings", owner "noderings", repository "saltext-noderings",
-# workflow "release.yml", environment "release".
+# Builds and publishes a release when release-please pushes a vX.Y.Z tag.
+#
+# 1. build: sdist and wheel from the tag (setuptools_scm turns the tag into
+#    the version) with build provenance attestations.
+# 2. pypi: publishes to https://pypi.org/project/saltext.noderings/ with
+#    trusted publishing (no stored token) from the "pypi" environment. Skipped
+#    with a warning until the repository variable PYPI_TRUSTED_PUBLISHING is
+#    "true" (set it once the pending publisher exists on pypi.org, see
+#    CONTRIBUTING.md, Releasing).
+# 3. github-release: uploads the files to the draft release made by
+#    release-please and publishes it.
+#
+# Always runs on GitHub-hosted runners: release builds never touch the
+# self-hosted runner.
 name: Release
 
-on:
+"on":
   push:
     tags: ["v*.*.*"]
+  workflow_dispatch: # run it from a tag (Use workflow from: Tags) to retry a release
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.ref_name }}
 
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
-      - uses: actions/checkout@v7
+      - name: Check this runs for a version tag
+        run: |
+          case "${TAG}" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::Run this workflow from a vX.Y.Z tag, not ${TAG}."; exit 1 ;;
+          esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v7
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - run: pip install build
+      - run: python -m pip install build twine
       - run: python -m build
-      - uses: actions/upload-artifact@v7
+      - run: python -m twine check --strict dist/*
+      - name: Check the version matches the tag
+        run: |
+          want="${TAG#v}"
+          ls dist
+          test -f "dist/saltext_noderings-${want}.tar.gz" || test -f "dist/saltext.noderings-${want}.tar.gz" \
+            || { echo "::error::The sdist version does not match ${TAG}."; exit 1; }
+          ls dist/*-"${want}"-py*.whl >/dev/null || { echo "::error::The wheel version does not match ${TAG}."; exit 1; }
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
 
   pypi:
+    name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
-    environment: release
+    timeout-minutes: 10
+    environment:
+      name: pypi
+      url: https://pypi.org/project/saltext.noderings/
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v8
+      - name: Check PyPI trusted publishing is set up
+        id: check
+        env:
+          ENABLED: ${{ vars.PYPI_TRUSTED_PUBLISHING }}
+        run: |
+          if [ "${ENABLED}" = "true" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=PyPI skipped::Add the pending publisher on pypi.org, then set the repository variable PYPI_TRUSTED_PUBLISHING=true (see CONTRIBUTING.md, Releasing). Re-run this workflow from the tag afterwards."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: steps.check.outputs.publish == 'true'
         with:
           name: dist
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+        if: steps.check.outputs.publish == 'true'
+        with:
+          skip-existing: true
 
   github-release:
-    needs: pypi
+    name: GitHub release
+    needs: [build, pypi]
+    if: always() && needs.build.result == 'success' && needs.pypi.result != 'failure' && needs.pypi.result != 'cancelled'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
     steps:
-      - uses: actions/download-artifact@v8
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: dist
           path: dist/
-      - env:
+      - name: Upload the files and publish the release
+        env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "$GITHUB_REF_NAME" --notes "See CHANGELOG.md."
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if ! gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release create "${TAG}" --verify-tag --draft --title "${TAG}" --notes "See CHANGELOG.md."
+          fi
+          gh release upload "${TAG}" dist/* --clobber
+          gh release edit "${TAG}" --draft=false --latest

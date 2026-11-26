@@ -38,16 +38,51 @@ Optional settings for the live tests: `NODERINGS_TEST_DOMAIN` (parent of the thr
 Run everything CI runs with nox:
 
 ```bash
-nox -e tests lint lint-tests docs
+nox -e tests-3.12 lint docs
+pre-commit run --all-files
 ```
 
-## Changelog
+## Commit messages
 
-Add a fragment for user-visible changes: `changelog/<issue number>.<type>.md`, where type is `added`, `changed`, `fixed`, `deprecated`, `removed`, `security` or `breaking`. Releases collect them with towncrier.
+Use [Conventional Commits](https://www.conventionalcommits.org/). release-please reads them to pick the next version and write `CHANGELOG.md`:
+
+| Prefix | Changelog section | Version bump (before 1.0) |
+|---|---|---|
+| `feat:` | Features | minor |
+| `fix:` | Bug Fixes | patch |
+| `perf:` | Performance | patch |
+| `docs:` | Documentation | patch |
+| `deps:` | Dependencies | patch |
+| `ci:`, `build:`, `chore:`, `test:`, `refactor:` | hidden | none |
+| `feat!:` or a `BREAKING CHANGE:` footer | Breaking changes | minor before 1.0, major after |
+
+The changelog is generated, so there are no towncrier fragments to add (the `changelog/` directory and its towncrier settings come from the copier template and are not used).
+
+## CI
+
+`.github/workflows/ci.yml` runs pre-commit, the unit tests on Salt 3006 to 3008, the docs build and a package check. A single **CI result** check is required on `main`. CI runs on GitHub-hosted runners until a NodeRings self-hosted runner exists and the variable `NODERINGS_RUNNER` is `true`. See [.github/self-hosted-runner.md](.github/self-hosted-runner.md).
 
 ## Releases
 
-Push a tag such as `v0.2.0`. The release workflow builds the package and publishes it to PyPI with trusted publishing, then publishes the docs.
+1. Merge pull requests into `main`. release-please (`.github/workflows/release-please.yml`, using the noderings-release-bot GitHub App) keeps a pull request named `chore: release X.Y.Z` up to date.
+2. Merge that pull request when you want to release. release-please pushes the tag `vX.Y.Z` and creates a draft GitHub release.
+3. The tag starts `.github/workflows/release.yml`, which:
+   - builds the sdist and wheel (setuptools_scm reads the version from the tag) and attests their build provenance
+   - publishes them to PyPI with trusted publishing from the `pypi` environment
+   - uploads them to the GitHub release and publishes it
+4. The docs on GitHub Pages update on every push to `main`.
+
+Do not create tags or releases by hand.
+
+### One-time setup
+
+| Where | What |
+|---|---|
+| GitHub (done) | Variable `RELEASE_BOT_APP_ID`, secret `RELEASE_BOT_PRIVATE_KEY`, environment `pypi` limited to `v*` tags |
+| pypi.org, account `noderings` → *Your account* → *Publishing* → *Add a new pending publisher* (GitHub) | PyPI project name `saltext.noderings`, owner `noderings`, repository `saltext-noderings`, workflow name `release.yml`, environment name `pypi` |
+| GitHub → Settings → Secrets and variables → Actions → Variables | `PYPI_TRUSTED_PUBLISHING` = `true` (until then the PyPI step is skipped with a warning) |
+
+A pending publisher turns into a normal trusted publisher with the first upload, which also creates the project on PyPI. If a release ran before PyPI was ready, open Actions → Release → *Run workflow*, pick the tag under *Use workflow from*, and run it again. Files already on PyPI are skipped.
 
 ## Code of conduct
 
