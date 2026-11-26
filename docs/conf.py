@@ -77,7 +77,11 @@ rst_prolog = """
 
 # -- General configuration ---------------------------------------------------
 
-linkcheck_ignore = [r"http://localhost:\d+"]
+linkcheck_ignore = [
+    r"http://localhost:\d+",
+    # A release pull request links the compare view of a tag it has not created yet.
+    r"https://github\.com/noderings/saltext-noderings/compare/.*",
+]
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
