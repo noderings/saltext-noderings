@@ -1,0 +1,43 @@
+# Nightly live tests against the NodeRings API. Runs only when the
+# NODERINGS_TOKEN secret is set; otherwise the job skips with a notice and
+# succeeds. NODERINGS_TEST_BILLED is not set, so billed server tests skip.
+# Live tests create and delete their own resources.
+name: Nightly live API
+
+"on":
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-live
+  cancel-in-progress: false
+
+jobs:
+  live:
+    name: Live tests (NodeRings API)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NODERINGS_TOKEN: ${{ secrets.NODERINGS_TOKEN }}
+    steps:
+      - name: Skip when NODERINGS_TOKEN is not set
+        if: env.NODERINGS_TOKEN == ''
+        run: echo "::notice title=Live tests skipped::Add the repository secret NODERINGS_TOKEN (a service account token for a test organization) to run them."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.NODERINGS_TOKEN != ''
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: env.NODERINGS_TOKEN != ''
+        with:
+          python-version: "3.12"
+      - if: env.NODERINGS_TOKEN != ''
+        run: python -m pip install "salt~=3008.0" -e ".[tests]"
+      - name: Functional and integration tests
+        if: env.NODERINGS_TOKEN != ''
+        run: pytest -ra tests/functional tests/integration
