@@ -1,10 +1,9 @@
 name: CI
 
-# Runs on GitHub-hosted runners until a NodeRings self-hosted runner exists.
-# To switch, register a runner with the labels "self-hosted" and "noderings"
-# (see .github/self-hosted-runner.md) and set the repository variable
-# NODERINGS_RUNNER=true. Pull requests from forks always stay on
-# GitHub-hosted runners: never run untrusted code on our own machines.
+# Pushes to main run on the NodeRings org runner (noderings-ci); pull requests,
+# including from forks, and manual runs stay on GitHub-hosted runners, so
+# untrusted code never reaches our machines. Jobs that install system packages
+# with sudo always run GitHub-hosted.
 "on":
   push:
     branches: [main]
@@ -30,7 +29,8 @@ env:
 jobs:
   pre-commit:
     name: Pre-commit
-    runs-on: ${{ (vars.NODERINGS_RUNNER == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","noderings"]') || 'ubuntu-latest' }}
+    # Pushes to main run on the org runner; pull requests and everything else stay GitHub-hosted.
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && fromJSON('["self-hosted","linux","x64"]') || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,7 +46,8 @@ jobs:
 
   unit:
     name: Unit (Salt ${{ matrix.salt }}, Python ${{ matrix.python }})
-    runs-on: ${{ (vars.NODERINGS_RUNNER == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","noderings"]') || 'ubuntu-latest' }}
+    # Pushes to main run on the org runner; pull requests and everything else stay GitHub-hosted.
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && fromJSON('["self-hosted","linux","x64"]') || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -72,7 +73,7 @@ jobs:
 
   docs:
     name: Docs
-    runs-on: ${{ (vars.NODERINGS_RUNNER == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","noderings"]') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -96,7 +97,8 @@ jobs:
 
   package:
     name: Package
-    runs-on: ${{ (vars.NODERINGS_RUNNER == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)) && fromJSON('["self-hosted","noderings"]') || 'ubuntu-latest' }}
+    # Pushes to main run on the org runner; pull requests and everything else stay GitHub-hosted.
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && fromJSON('["self-hosted","linux","x64"]') || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,7 +134,8 @@ jobs:
     needs: [unit]
     # Only where the secret exists; forks and outside pull requests skip.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ vars.NODERINGS_RUNNER == 'true' && fromJSON('["self-hosted","noderings"]') || 'ubuntu-latest' }}
+    # Pushes to main run on the org runner; pull requests and everything else stay GitHub-hosted.
+    runs-on: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && fromJSON('["self-hosted","linux","x64"]') || 'ubuntu-latest' }}
     timeout-minutes: 45
     env:
       NODERINGS_TOKEN: ${{ secrets.NODERINGS_TOKEN }}
