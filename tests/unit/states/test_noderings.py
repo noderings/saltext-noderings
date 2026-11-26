@@ -2,6 +2,7 @@ import pytest
 
 import saltext.noderings.modules.noderings_mod as noderings_module
 import saltext.noderings.states.noderings_mod as noderings_state
+from tests.unit.fakeapi import ACME_PLAN_ID
 from tests.unit.fakeapi import PLAN_ID
 from tests.unit.fakeapi import REGION_ID
 
@@ -46,6 +47,31 @@ def test_test_mode_changes_nothing(api, test_mode):  # pylint: disable=unused-ar
     ret = noderings_state.vm_present("web-1", plan_id=PLAN_ID, region_id=REGION_ID)
     assert ret["result"] is None
     assert api.writes() == []
+
+
+@pytest.mark.parametrize("provider", [None, "acme-hosting", "Acme Hosting"])
+def test_vm_present_orders_from_the_hosting_provider(api, provider):
+    ret = noderings_state.vm_present(
+        "web-1",
+        plan_code="SC-GC-1C-1G-20",
+        country="United States",
+        city="Ashburn",
+        hosting_provider=provider,
+    )
+    assert ret["result"] is True and ret["changes"]["old"] is None
+    assert api.created_vm_bodies[-1]["planId"] == (ACME_PLAN_ID if provider else PLAN_ID)
+
+
+def test_vm_present_fails_for_an_unknown_provider(api):
+    ret = noderings_state.vm_present(
+        "web-1",
+        plan_code="SC-GC-1C-1G-20",
+        country="United States",
+        city="Ashburn",
+        hosting_provider="Nobody Hosting",
+    )
+    assert ret["result"] is False and "from provider Nobody Hosting" in ret["comment"]
+    assert not api.created_vm_bodies
 
 
 def test_dns_zone_and_records(api):  # pylint: disable=unused-argument

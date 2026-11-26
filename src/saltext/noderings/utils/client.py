@@ -514,6 +514,9 @@ class NodeRingsClient:  # pylint: disable=too-many-public-methods
             query["filterIpv6AvailableOnly"] = "true"
         return self.get("/v1/marketplace/providers", query).get("providers") or []
 
+    def get_public_storefront(self, slug):
+        return self.get(f"/v1/public/storefronts/{path_escape(slug)}").get("storefront")
+
     def get_provider(self, provider_id):
         return self.get(f"/v1/marketplace/providers/{path_escape(provider_id)}").get("provider")
 

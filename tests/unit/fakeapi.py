@@ -15,6 +15,18 @@ from urllib.parse import urlparse
 
 PLAN_ID = "11111111-1111-1111-1111-111111111111"
 REGION_ID = "22222222-2222-2222-2222-222222222222"
+ACME_ID = "33333333-3333-3333-3333-333333333333"
+ACME_PLAN_ID = "44444444-4444-4444-4444-444444444444"
+ACME_REGION_ID = "55555555-5555-5555-5555-555555555555"
+ACME_OFFER = {
+    "organizationId": ACME_ID,
+    "organizationName": "Acme Hosting",
+    "planId": ACME_PLAN_ID,
+    "planRegions": [{"country": "United States", "city": "Ashburn", "regionId": ACME_REGION_ID}],
+    "capabilities": ["guest_firewall"],
+    "rating": 4.8,
+    "planPrices": [{"unitAmount": "0.012", "unitName": "per compute-hour"}],
+}
 
 
 class FakeResponse:
@@ -40,6 +52,7 @@ class FakeNodeRings:  # pylint: disable=too-many-public-methods
 
     def __init__(self):
         self.calls = []
+        self.extra_providers = []
         self.ssh_keys = {}
         self.zones = {}
         self.records = {}  # zone_id -> {(name, type): {"ttl", "rdata"}}
@@ -72,6 +85,8 @@ class FakeNodeRings:  # pylint: disable=too-many-public-methods
             ("DELETE", r"/v1/firewall/rules/([^/]+)", self.delete_rule),
             ("POST", r"/v1/firewall/rules/([^/]+)/move", self.move_rule),
             ("GET", r"/v1/marketplace/providers", self.list_providers),
+            ("GET", r"/v1/marketplace/providers/([^/]+)", self.get_provider),
+            ("GET", r"/v1/public/storefronts/([^/]+)", self.get_storefront),
             ("GET", r"/v1/marketplace/plans/([^/]+)", self.get_plan),
             ("GET", r"/v1/marketplace/plans", self.list_plans),
             ("GET", r"/v1/marketplace/regions", self.list_regions),
@@ -142,9 +157,45 @@ class FakeNodeRings:  # pylint: disable=too-many-public-methods
                     ],
                     "capabilities": ["guest_firewall"],
                     "planPrices": [{"unitAmount": "0.007", "unitName": "per compute-hour"}],
-                }
+                },
+                ACME_OFFER,
             ]
+            + self.extra_providers
         }
+
+    def get_provider(self, q, b, provider_id):  # pylint: disable=unused-argument
+        if provider_id != ACME_ID:
+            return _err(404, 5, "provider not found")
+        return 200, {
+            "provider": {
+                "provider": {
+                    "organizationId": ACME_ID,
+                    "organizationName": "Acme Hosting",
+                    "rating": 4.8,
+                },
+                "availablePlans": [
+                    {
+                        "planId": ACME_PLAN_ID,
+                        "planCode": "SC-GC-1C-1G-20",
+                        "billingType": "BILLING_TYPE_USAGE",
+                        "assetType": "ASSET_TYPE_VM",
+                        "regions": [
+                            {
+                                "country": "United States",
+                                "city": "Ashburn",
+                                "regionId": ACME_REGION_ID,
+                            }
+                        ],
+                        "planPrices": ACME_OFFER["planPrices"],
+                    }
+                ],
+            }
+        }
+
+    def get_storefront(self, q, b, slug):  # pylint: disable=unused-argument
+        if slug != "acme-hosting":
+            return _err(404, 5, "storefront not found")
+        return 200, {"storefront": {"slug": slug, "providerId": ACME_ID}}
 
     # -- SSH keys ----------------------------------------------------------------
 

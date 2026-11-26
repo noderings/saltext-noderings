@@ -737,6 +737,7 @@ def create_vm(
     plan_id=None,
     region_id=None,
     provider_id=None,
+    hosting_provider=None,
     sort="price",
     wait=True,
     wait_timeout=900,
@@ -750,11 +751,17 @@ def create_vm(
     and ``region_id`` from ``noderings.list_offers``. ``billing_type=usage``
     bills by the hour from prepaid credit and stops when the VM is deleted.
 
+    ``hosting_provider`` orders only from one hosting provider: its provider ID,
+    its storefront slug (such as ``acme-hosting``) or its name (``Acme Hosting``,
+    any case). A name that more than one provider uses is an error; give the ID
+    or slug then. ``provider_id`` takes precedence.
+
     CLI Example:
 
     .. code-block:: bash
 
         salt '*' noderings.create_vm web-1 plan_code=SC-GC-1C-1G-20 country="United States" city=Ashburn ssh_keys='["laptop"]'
+        salt '*' noderings.create_vm web-1 plan_code=SC-GC-1C-1G-20 country="United States" city=Ashburn hosting_provider=acme-hosting ssh_keys='["laptop"]'
     """
     client = _client(profile)
     if _vm(client, name):
@@ -777,6 +784,7 @@ def create_vm(
             provider_id=provider_id,
             require_capabilities=caps,
             sort=sort,
+            provider=hosting_provider,
         )
     elif not region_id:
         raise SaltInvocationError("plan_id needs region_id")

@@ -5,6 +5,11 @@ from salt.exceptions import SaltCloudNotFound
 from salt.exceptions import SaltCloudSystemExit
 
 import saltext.noderings.clouds.noderings_mod as noderings_cloud
+from tests.unit.fakeapi import ACME_ID
+from tests.unit.fakeapi import ACME_OFFER
+from tests.unit.fakeapi import ACME_PLAN_ID
+from tests.unit.fakeapi import ACME_REGION_ID
+from tests.unit.fakeapi import PLAN_ID
 
 PROVIDER = "my-noderings"
 
@@ -97,6 +102,29 @@ def test_create_rejects_duplicates_and_bad_profiles(api):  # pylint: disable=unu
         noderings_cloud.create(_vm_(name="web-2", location="Ashburn"))
     with pytest.raises(SaltCloudSystemExit, match="No offer"):
         noderings_cloud.create(_vm_(name="web-3", location="United States/Nowhere"))
+
+
+@pytest.mark.parametrize("provider", [ACME_ID, "acme-hosting", "Acme Hosting", "  acme HOSTING "])
+def test_create_orders_from_the_hosting_provider(api, provider):
+    noderings_cloud.create(_vm_(hosting_provider=provider))
+    body = api.created_vm_bodies[-1]
+    assert body["planId"] == ACME_PLAN_ID and body["regionId"] == ACME_REGION_ID
+
+
+def test_create_without_a_hosting_provider_takes_the_cheapest(api):
+    noderings_cloud.create(_vm_())
+    assert api.created_vm_bodies[-1]["planId"] == PLAN_ID
+
+
+def test_create_fails_for_an_unknown_or_shared_provider_name(api):
+    with pytest.raises(SaltCloudSystemExit, match="from provider Nobody Hosting"):
+        noderings_cloud.create(_vm_(hosting_provider="Nobody Hosting"))
+    api.extra_providers.append(
+        dict(ACME_OFFER, organizationId="66666666-6666-6666-6666-666666666666")
+    )
+    with pytest.raises(SaltCloudSystemExit, match="more than one provider is named acme hosting"):
+        noderings_cloud.create(_vm_(hosting_provider="acme hosting"))
+    assert not api.created_vm_bodies
 
 
 def test_call_guards(api):  # pylint: disable=unused-argument

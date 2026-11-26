@@ -57,6 +57,7 @@ noderings-ashburn-small:
   location: United States/Ashburn
   image: ubuntu_24_04
   billing_type: usage              # hourly, from prepaid credit
+  hosting_provider: acme-hosting   # optional; the cheapest provider otherwise
   ssh_keys: [laptop]               # stored in NodeRings
   private_key: /root/.ssh/id_ed25519
 ```
@@ -68,6 +69,8 @@ salt-cloud -d web-1
 ```
 
 `salt-cloud --list-sizes|--list-locations|--list-images my-noderings` list what you can order.
+
+Without `hosting_provider` the cheapest matching offer is ordered, so the provider can change between servers. `hosting_provider` keeps it fixed: give the provider's ID, its storefront slug (such as `acme-hosting`) or its name (`Acme Hosting`, any case). A name that more than one provider uses is an error; give the ID or slug then. The key is not called `provider` because that names the Salt Cloud provider block in a profile. `noderings.create_vm` and `noderings.vm_present` take the same `hosting_provider` argument.
 
 ## Manage resources with the execution module
 

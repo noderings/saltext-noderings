@@ -54,7 +54,7 @@ www:
 |---|---|
 | `tags`, `firewall_ruleset`, `power_state` | Updated in place |
 | `distro` | Reinstalls the server only with `allow_reinstall: True`, because it erases the disk; otherwise the state fails and says so |
-| `plan_code`, `plan_id`, `region_id` | Only used to order; an existing server is never moved |
+| `plan_code`, `plan_id`, `region_id`, `hosting_provider` | Only used to order; an existing server is never moved |
 
 Firewall rules run top to bottom, and traffic that matches no rule is accepted,
 so end a ruleset with a drop rule. Each rule takes one port or one range such

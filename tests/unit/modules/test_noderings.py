@@ -2,6 +2,10 @@ import pytest
 from salt.exceptions import SaltInvocationError
 
 import saltext.noderings.modules.noderings_mod as noderings_module
+from tests.unit.fakeapi import ACME_ID
+from tests.unit.fakeapi import ACME_OFFER
+from tests.unit.fakeapi import ACME_PLAN_ID
+from tests.unit.fakeapi import ACME_REGION_ID
 from tests.unit.fakeapi import PLAN_ID
 from tests.unit.fakeapi import REGION_ID
 
@@ -126,6 +130,41 @@ def test_create_vm_picks_offer_and_keys(api):
     assert body["planId"] == PLAN_ID and body["regionId"] == REGION_ID
     assert body["distro"] == "DISTRO_UBUNTU_24_04"
     assert len(body["sshKeyIds"]) == 1 and body["idempotencyKey"]
+
+
+OFFER = {"plan_code": "SC-GC-1C-1G-20", "country": "United States", "city": "Ashburn"}
+
+
+@pytest.mark.parametrize("provider", [ACME_ID, "acme-hosting", "Acme Hosting", "  acme HOSTING "])
+def test_create_vm_from_the_named_provider(api, provider):
+    noderings_module.create_vm("web-1", hosting_provider=provider, **OFFER)
+    body = api.created_vm_bodies[-1]
+    assert body["planId"] == ACME_PLAN_ID and body["regionId"] == ACME_REGION_ID
+
+
+def test_create_vm_without_a_provider_takes_the_cheapest(api):
+    noderings_module.create_vm("web-1", **OFFER)
+    assert api.created_vm_bodies[-1]["planId"] == PLAN_ID
+
+
+def test_create_vm_provider_id_wins_over_hosting_provider(api):
+    noderings_module.create_vm("web-1", provider_id=ACME_ID, hosting_provider="Nobody", **OFFER)
+    assert api.created_vm_bodies[-1]["planId"] == ACME_PLAN_ID
+
+
+def test_create_vm_fails_for_an_unknown_provider(api):
+    with pytest.raises(SaltInvocationError, match="from provider Nobody Hosting"):
+        noderings_module.create_vm("web-1", hosting_provider="Nobody Hosting", **OFFER)
+    assert not api.created_vm_bodies
+
+
+def test_create_vm_refuses_a_provider_name_two_providers_share(api):
+    api.extra_providers.append(
+        dict(ACME_OFFER, organizationId="66666666-6666-6666-6666-666666666666")
+    )
+    with pytest.raises(SaltInvocationError, match="more than one provider is named acme hosting"):
+        noderings_module.create_vm("web-1", hosting_provider="acme hosting", **OFFER)
+    assert not api.created_vm_bodies
 
 
 def test_create_vm_errors(api):  # pylint: disable=unused-argument

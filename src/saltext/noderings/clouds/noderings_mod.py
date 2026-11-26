@@ -315,6 +315,9 @@ def create(vm_):
                 provider_id=_profile_value(vm_, "provider_id"),
                 require_capabilities=["guest_firewall"] if ruleset_id else [],
                 sort=_profile_value(vm_, "sort", "price"),
+                # ``provider`` names the Salt Cloud provider block, so the hosting
+                # provider has its own key.
+                provider=_profile_value(vm_, "hosting_provider"),
             )
             log.info("Ordering %s from %s", name, offer.get("provider_name"))
         key_ids = compute.resolve_ssh_keys(client, _profile_value(vm_, "ssh_keys") or [])
