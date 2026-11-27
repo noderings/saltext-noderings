@@ -138,6 +138,10 @@ NODERINGS_TOKEN=... NODERINGS_TEST_BILLED=1 pytest tests/functional tests/integr
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Related
+
+The [Go SDK](https://github.com/noderings/noderings-go) is the official Go client for the NodeRings API.
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).
