@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/noderings/saltext-noderings/compare/v0.2.0...v0.2.1) (2026-11-27)
+
+
+### Documentation
+
+* link the official Go SDK in the README ([#9](https://github.com/noderings/saltext-noderings/issues/9)) ([3ff8bb7](https://github.com/noderings/saltext-noderings/commit/3ff8bb707166e18537e24e9cd0d70baedf1a0bb7))
+
 ## [0.2.0](https://github.com/noderings/saltext-noderings/compare/v0.1.0...v0.2.0) (2026-11-26)
 
 
